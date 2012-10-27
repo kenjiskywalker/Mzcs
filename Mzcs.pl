@@ -15,11 +15,12 @@ use DBI;
 use Data::Dumper;
 use DDP;
 
-
 ### Zabbix Settings ###
 my $username = "";
 my $password = "";
 
+
+### Your Zabbix URL
 my $url = 'https://localhost/zabbix';
 
 
@@ -61,39 +62,38 @@ sub input_graphid {
 }
 
 my @graph_category = (
-    "CPU Utilization",        "DiskUsage",     "nginx response code",
-    "nginx response time",    "Load Average",  "Memory Utilization",
-    "Swap Utilization",       "Network Traffic (eth0)",
-    "Network Traffic (eth1)", "MySQL queries", "MySQL slave delay",
+    "CPU Utilization",
+    "DiskUsage",
+    "Load Average",
+    "Memory Utilization",
+    "Swap Utilization",
+    "Network Traffic (eth0)",
+    "Network Traffic (eth1)",
+    "MySQL queries",
+    "MySQL slave delay"
 );
 
 my %filepath = (
     cpu    => "CPU Utilization",
     disk   => "DiskUsage",
-    cod    => "nginx response code",
-    tim    => "nginx response time",
     memory => "Memory Utilization",
-    swa    => "Swap Utilization",
+    swap   => "Swap Utilization",
     loa    => "Load Average",
     netone => "Network Traffic (eth0)",
     nettwo => "Network Traffic (eth1)",
     query  => "MySQL queries",
-    slave  => "MySQL slave delay"
+    slave  => "MySQL slave delay",
 );
 
 ### CPU = Fork
 my $pm = new Parallel::ForkManager(2);
 
-my $tim; # tim => nginx time response
-my $cod; # cod => nginx code response
-my $cod_graphid;
-my $tim_graphid;
 
 
 ### graph data ###
 my $width       = 500;
-my $period_day  = 86400;     # 86400 => 1day. 1209600 => 2week.
-my $period_week = 1209600;   # 86400 => 1day. 1209600 => 2week.
+my $period_day  = 86400;     # 86400 => 1day.
+my $period_week = 1209600;   # 1209600 => 2week.
 
 
 my $time = "090000";   # for time. 09:00:00
@@ -124,91 +124,68 @@ for my $key (keys(%filepath)) {
             my $graphurl = "$url/chart2.php?graphid=$graph&width=$width&period=$since{$day}&stime=$days{$day}";
 
             # main system get png image 
-            $mech->get("$graphurl",":content_file" => "png/${graph}_${day}.png");
+            # $mech->get("$graphurl",":content_file" => "png/${graph}_${day}.png");
             print "$graphurl\n";
             $pm->finish;
         }
         $pm->wait_all_children;
     }
-
 }
 
 
-### make HTML file area ###
+### Make HTML File Area ###
 my $vpath = Data::Section::Simple->new()->get_data_section();
 my $tx = Text::Xslate->new(path => [$vpath],);
 my $graph_data;
 
 for my $key (keys(%filepath)) {
+    my $graph_name = $filepath{$key};
 
-    if ($key ne 'tim' && $key ne 'cod') {
-        my $graph_name = $filepath{$key};
+    my @graphid = input_graphid($graph_name);
+    my @one   = splice(@graphid, 0, 30);
+    my @two   = splice(@graphid, 0, 30);
+    my @three = splice(@graphid, 0, 30);
+    my @four  = splice(@graphid, 0, 30);
+    my @five  = splice(@graphid, 0, 30);
+    my @six   = splice(@graphid, 0, 30);
+    my @seven = splice(@graphid, 0, 30);
+    my @eight = splice(@graphid, 0, 30);
+    my @nine  = splice(@graphid, 0, 30);
+    my @ten   = splice(@graphid, 0, 30);
 
-        my @graphid = input_graphid($graph_name);
-        my @one   = splice(@graphid, 0, 30);
-        my @two   = splice(@graphid, 0, 30);
-        my @three = splice(@graphid, 0, 30);
-        my @four  = splice(@graphid, 0, 30);
-        my @five  = splice(@graphid, 0, 30);
-        my @six   = splice(@graphid, 0, 30);
-        my @seven = splice(@graphid, 0, 30);
-        my @eight = splice(@graphid, 0, 30);
-        my @nine  = splice(@graphid, 0, 30);
-        my @ten   = splice(@graphid, 0, 30);
+    my @num = (\@one, \@two, \@three, \@four, \@five, \@six, \@seven, \@eight, \@nine, \@ten);
 
-        my @num = (\@one, \@two, \@three, \@four, \@five, \@six, \@seven, \@eight, \@nine, \@ten);
+    my %number = (
+        one   => \@one,
+        two   => \@two,
+        three => \@three,
+        four  => \@four,
+        five  => \@five,
+        six   => \@six,
+        seven => \@seven,
+        eight => \@eight,
+        nine  => \@nine,
+        ten   => \@ten,
+    );
 
-        my %number = (
-            one   => \@one,
-            two   => \@two,
-            three => \@three,
-            four  => \@four,
-            five  => \@five,
-            six   => \@six,
-            seven => \@seven,
-            eight => \@eight,
-            nine  => \@nine,
-            ten   => \@ten,
+    for my $num (keys(%number)) {
+
+        my $graphid_ref = $number{$num};
+        $graph_data = $tx->render("template.tx",
+            {
+                graph_name => $graph_name,
+                list       => $graphid_ref, #list -> \@one => graphid
+                graph_cate => $key,         #key
+                number     => $num,
+            }
         );
-
-        for my $num (keys(%number)) {
-
-            my $graphid_ref = $number{$num};
-            $graph_data = $tx->render("template.tx",
-                {
-                    graph_name => $graph_name,
-                    list       => $graphid_ref, #list -> \@one => graphid
-                    graph_cate => $key,         #key
-                    number     => $num,
-                }
-            );
-            open(my $fh, '>', $key."_".$num.".html"); # open ex) $key(cpu)_$num(one).html
-            print $fh $graph_data;
-            close($fh);
-        }
-
-    } else {
-
-        my $graph_name = $filepath{$key};
-
-        if ($graph_name eq "nginx response time") {
-            $tim = $graph_name;
-            my @graphid = input_graphid($graph_name);
-            $tim_graphid = \@graphid;
-        } else {
-            $cod = $graph_name;
-            my @graphid = input_graphid($graph_name);
-            $cod_graphid = \@graphid;
-        }
-   }
+        open(my $fh, '>', $key."_".$num.".html"); # open ex) $key(cpu)_$num(one).html
+        print $fh $graph_data;
+        close($fh);
+    }
 }
 
-my $index_graph_data = $tx->render("template_index.tx",
-    {
-        tim => $tim_graphid, #tim -> \@graphid => graphid(100, 101, 102)
-        cod => $cod_graphid, #cod -> \@graphid => graphid(100, 101, 102)
-    }
-);
+my $index_graph_data = $tx->render("template_index.tx");
 
 open(my $fh, '>', 'index.html');
 print $fh $index_graph_data;
@@ -252,7 +229,7 @@ __DATA__
 </div>
 </div>
 
-<script src="js/bootstrap.min.js"></script>
+<script src="./css/bootstrap/docs/assets/js/bootstrap.min.js"></script>
 
 <div class="container-fluid">
 <br>
@@ -268,35 +245,6 @@ __DATA__
         Light Graph is a week before 2weekly Graph Data.<br>
 
 </h3>
-<br>
-
-<ul class="nav nav-tabs">
-<li class="active">
-<a href="#">Home</a>
-</li>
-<li><a href="#COD">COD</a></li>
-<li><a href="#TIM">TIM</a></li>
-</ul>
-
-<div id="TIM">
-: for $tim -> $graph_tim {
-<p>
-<a href="./png/<: $graph_tim :>_today.png"><img src="./png/<: $graph_tim :>_today.png" width="300"  ></a>&nbsp;&nbsp;&nbsp;
-<a href="./png/<: $graph_tim :>_yesterday.png"><img src="./png/<: $graph_tim :>_yesterday.png" width="300" ></a>&nbsp;&nbsp;&nbsp;
-<a href="./png/<: $graph_tim :>_weekly.png"><img src="./png/<: $graph_tim :>_weekly.png" width="300" ></a>
-</p>
-: }
-</div>
-
-<div id="COD">
-: for $cod -> $graph_cod {
-<p>
-<a href="./png/<: $graph_cod :>_today.png"><img src="./png/<: $graph_cod :>_today.png" width="300"  ></a>&nbsp;&nbsp;&nbsp;
-<a href="./png/<: $graph_cod :>_yesterday.png"><img src="./png/<: $graph_cod :>_yesterday.png" width="300" ></a>&nbsp;&nbsp;&nbsp;
-<a href="./png/<: $graph_cod :>_weekly.png"><img src="./png/<: $graph_cod :>_weekly.png" width="300" ></a>
-</p>
-: }
-</div>
 
 </body>
 </html>
@@ -309,9 +257,8 @@ __DATA__
 <head>
 <title>Morning Zabbix (Graph) Check System</title>
 <!-- Le styles -->
-<link href="css/bootstrap.css" rel="stylesheet">
-<link href="css/bootstrap-responsive.css" rel="stylesheet">
-<link href="css/docs.css" rel="stylesheet">
+<link href="./css/bootstrap/docs/assets/css/bootstrap.css" rel="stylesheet">
+<link href="./css/bootstrap/docs/assets/css/bootstrap-responsive.css" rel="stylesheet">
 </head>
 <body>
 <div class="navbar navbar-inverse navbar-fixed-top">
@@ -376,7 +323,7 @@ __DATA__
 </div>
 </div>
 
-<script src="js/bootstrap.min.js"></script>
+<script src="./css/bootstrap/docs/assets/js/bootstrap.min.js"></script>
 
 
 <div class="container-fluid">
