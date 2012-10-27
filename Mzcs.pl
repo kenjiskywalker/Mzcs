@@ -124,7 +124,7 @@ for my $key (keys(%filepath)) {
             my $graphurl = "$url/chart2.php?graphid=$graph&width=$width&period=$since{$day}&stime=$days{$day}";
 
             # main system get png image 
-            # $mech->get("$graphurl",":content_file" => "png/${graph}_${day}.png");
+            $mech->get("$graphurl",":content_file" => "png/${graph}_${day}.png");
             print "$graphurl\n";
             $pm->finish;
         }
@@ -138,35 +138,14 @@ my $vpath = Data::Section::Simple->new()->get_data_section();
 my $tx = Text::Xslate->new(path => [$vpath],);
 my $graph_data;
 
+
 for my $key (keys(%filepath)) {
     my $graph_name = $filepath{$key};
-
     my @graphid = input_graphid($graph_name);
-    my @one   = splice(@graphid, 0, 30);
-    my @two   = splice(@graphid, 0, 30);
-    my @three = splice(@graphid, 0, 30);
-    my @four  = splice(@graphid, 0, 30);
-    my @five  = splice(@graphid, 0, 30);
-    my @six   = splice(@graphid, 0, 30);
-    my @seven = splice(@graphid, 0, 30);
-    my @eight = splice(@graphid, 0, 30);
-    my @nine  = splice(@graphid, 0, 30);
-    my @ten   = splice(@graphid, 0, 30);
 
-    my @num = (\@one, \@two, \@three, \@four, \@five, \@six, \@seven, \@eight, \@nine, \@ten);
-
-    my %number = (
-        one   => \@one,
-        two   => \@two,
-        three => \@three,
-        four  => \@four,
-        five  => \@five,
-        six   => \@six,
-        seven => \@seven,
-        eight => \@eight,
-        nine  => \@nine,
-        ten   => \@ten,
-    );
+    my @keys   = qw/one two two three four five six seven eight nine ten/;
+    my %number = map { $_ => [splice @graphid, 0, 30] } @keys;
+    my @num    = map { $number{$_} } @keys;
 
     for my $num (keys(%number)) {
 
