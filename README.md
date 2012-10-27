@@ -132,13 +132,13 @@ my $pm = new Parallel::ForkManager(2);
 set your CPU Core.
 
 
-### 6. batch time
+### 6. Graph Set Time
 
 ```
 my $time = "090000";   # for time. 09:00:00
 ```
 
-default 09:00
+default 09:00 ~ 09:00
 
 
 Settings
