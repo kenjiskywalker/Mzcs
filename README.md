@@ -68,11 +68,17 @@ my $username = "";
 my $password = "";
 ```
 
+Attention!
+Refresh enters while you're getting
+set Graph Refresh Time "0" for this account(Profile).
+
+
 ### 2. Zabbix URL
 ```
 ### Your Zabbix URL
 my $url = 'https://localhost/zabbix';
 ```
+
 
 ### 3. Zabbix DATABASE
 
